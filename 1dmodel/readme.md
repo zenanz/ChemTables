@@ -13,7 +13,7 @@ Pre-processing is needed before training, _preprocessing.py_ reads dataset from 
 python preprocessing.py [preprocessing_mode] [max_input_length]
 ```
 
-Our code for fine-tuning tranformers supports multi-GPU training. Note that the code will automatically GPUs and run on **first GPUs available** in the current environment. To start training, please run
+Our code for fine-tuning tranformers does not support multi-GPU at the moment. Note that the code will automatically GPUs and run on **first GPUs available** in the current environment. To start training, please run
 
 ```bash
 python train.py [preprocessing_mode] [max_input_length]
