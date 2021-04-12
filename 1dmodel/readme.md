@@ -1,25 +1,22 @@
-## COMP90051 Project 1 Tweet Authorship Attribution
+## Table-BERT model
 
-We leverages transformer-based language models pre-trained on massive corpus to extract semantic features of tweets, and perform authorship attribution by fine-tuning the pre-trained LM on classification tasks.
+Here is the implementation of the Table-BERT model evaluated on the _ChemTables_ dataset. To run the model, you should 
 
 ### Usage
 Use of virtual environment (e.g. _virtualenv_, _Anaconda_) of **python 3.7** is recommended. To install dependencies, please run the following command in your python environment.
 ```bash
 pip install -r requirements.txt
 ```
-Pre-processing is needed before training, _preprocessing.py_ reads dataset from files and convert them to _TensorDataset_ s. Cache file for _TensorDataset_ s and label mapping dictionaries are stored in _cache/_. Run the following command to generate pre-processed datasets.
+Pre-processing is needed before training, _preprocessing.py_ reads dataset from files and convert them to _TensorDataset_ s. Cache file for _TensorDataset_ s and label mapping dictionaries are stored in _cache/_. Run the following command to generate pre-processed datasets. Pre-processing mode can be selected from _linear_ and _natural_ and maximum input length can a integer from 1-512. See the paper for more information on these hyper-parameters.
 
 ```bash
-python preprocessing.py
+python preprocessing.py [preprocessing_mode] [max_input_length]
 ```
-Our code for fine-tuning tranformers supports multi-GPU training. Note that the code will automatically detect number of GPUs and run on **all GPUs available** in the current environment. Please specify visible GPUs in your environment variables to avoid holding up all GPUs. To start training, please run
+
+Our code for fine-tuning tranformers supports multi-GPU training. Note that the code will automatically GPUs and run on **first GPUs available** in the current environment. To start training, please run
 
 ```bash
-python train.py
+python train.py [preprocessing_mode] [max_input_length]
 ```
 
-The predicted labels of tweets in test set are saved in _test_preds.txt_. To generate _.csv_ file ready for Kaggle submission, please run
-
-```bash
-python create_csv.py
-```
+Pre-trained Table-BERT model on the ChemTables dataset can be downloaded from here.
