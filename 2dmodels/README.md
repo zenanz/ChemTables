@@ -14,4 +14,4 @@ To train the model, run the following command, the argument model can be selecte
 python train.py [model] [max_rows] [max_columns]
 ```
 
-Pre-trained TabNet and TBResNet model state dicts on the ChemTables dataset can be downloaded from here.
+Pre-trained TabNet and TBResNet model state dicts on the ChemTables dataset can be downloaded from [here](https://chemu.eng.unimelb.edu.au/download/table-bert/).
