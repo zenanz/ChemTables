@@ -19,4 +19,4 @@ Our code for fine-tuning tranformers does not support multi-GPU at the moment. N
 python train.py [preprocessing_mode] [max_input_length]
 ```
 
-Pre-trained Table-BERT model on the ChemTables dataset can be downloaded from here.
+Pre-trained Table-BERT model on the ChemTables dataset can be downloaded from [here](https://chemu.eng.unimelb.edu.au/download/table-bert/).
