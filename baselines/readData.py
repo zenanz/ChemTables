@@ -22,11 +22,11 @@ def getStringAndLabelData(foldData, number_of_table_rows):
     return strings,  labels
 
 def readData(number_of_table_rows):
-    fold1 = json.load(open("rxTables_tokenized_5_folds_CV/rxTables_tokenized_fold_1", 'r'))
-    fold2 = json.load(open("rxTables_tokenized_5_folds_CV/rxTables_tokenized_fold_2", 'r'))
-    fold3 = json.load(open("rxTables_tokenized_5_folds_CV/rxTables_tokenized_fold_3", 'r'))
-    fold4 = json.load(open("rxTables_tokenized_5_folds_CV/rxTables_tokenized_fold_4", 'r'))
-    fold5 = json.load(open("rxTables_tokenized_5_folds_CV/rxTables_tokenized_fold_5", 'r'))
+    fold1 = json.load(open("data/ChemTables_fold_1.json", 'r'))
+    fold2 = json.load(open("data/ChemTables_fold_2.json", 'r'))
+    fold3 = json.load(open("data/ChemTables_fold_3.json", 'r'))
+    fold4 = json.load(open("data/ChemTables_fold_4.json", 'r'))
+    fold5 = json.load(open("data/ChemTables_fold_5.json", 'r'))
 
     trainStrings, trainLabels = getStringAndLabelData(fold1 + fold2 + fold3, number_of_table_rows)
     devStrings, devLabels = getStringAndLabelData(fold4, number_of_table_rows)
@@ -47,8 +47,3 @@ def extractFeatures(trainStrings, devStrings, testStrings, max_features):
 if __name__ == "__main__":
     trainStrings, trainLabels, devStrings, devLabels, testStrings, testLabels = readData(10)
     print(len(trainStrings), len(trainLabels), len(devStrings), len(devLabels), len(testStrings), len(testLabels))
-
-
-
-
-
