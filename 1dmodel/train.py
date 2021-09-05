@@ -63,8 +63,12 @@ patience = 5
 num_train_epochs = 50
 fold = 3
 
-train_batch_size = 4*n_gpu
+train_batch_size = 2*n_gpu
 serialization_dir = 'model/%s_%s' % (mode, max_sequence_length)
+
+if not os.path.exists('model'):
+    os.mkdir('model')
+
 if not os.path.exists(serialization_dir):
     os.mkdir(serialization_dir)
 
