@@ -20,3 +20,9 @@ python train.py [preprocessing_mode] [max_input_length]
 ```
 
 Pre-trained Table-BERT model on the ChemTables dataset can be downloaded from [here](https://chemu.eng.unimelb.edu.au/download/table-bert/).
+
+To make inference with pre-trained model on a given dataset. Please put the folder of the pre-trained BERT model under **models** and run the following script. But you will need to make sure your dataset has been properly preprocessed and stored in **cache** folder.
+
+```bash
+python predict.py [model_folder_name] [preprocessing_mode]
+```
