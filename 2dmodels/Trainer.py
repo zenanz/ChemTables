@@ -132,6 +132,7 @@ class Trainer:
                 best_val_f1 = res['validation']['f1']
                 best_test_res = res['test']
                 best_epoch = epoch_idx
+                self.save()
                 # torch.save(self._model, os.path.join(self._serialization_dir, 'checkpoint'))
                 no_improve = 0
             else:
@@ -139,8 +140,16 @@ class Trainer:
 
             total_res.append(res)
             self._scheduler.step()
-        self.save()
         return total_res, (best_epoch, best_val_f1, best_test_res)
 
+    def predict(self):
+
+        res = dict()
+        res['f1'], res['report'], res['confusion'], res['avg_loss'], res['output_dict'] = self.epoch(0, self._data_loaders['test'], mode='test')
+
+        return res
+
+
     def save(self):
-        torch.save(self._model.state_dict(), 'saved_state_dict')
+        path = os.path.join(self._serialization_dir, 'saved_state_dict')
+        torch.save(self._model.state_dict(), path)
