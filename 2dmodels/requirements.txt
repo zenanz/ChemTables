@@ -1,6 +1,6 @@
-numpy
-torch
-torchvision
-tqdm
-sklearn
-transformers
+scikit-learn==0.24.2
+torch==1.1.0
+torchvision==0.3.0
+transformers==2.11.0
+tqdm==4.32.2
+numpy==1.20.3

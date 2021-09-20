@@ -45,7 +45,7 @@ width_limit =  int(sys.argv[3])
 hidden_size = 64
 fold_idx = 3
 
-model_dir = os.path.join('models', "_".join((model_type, 'H_limit', str(height_limit), 'W_limit', str(width_limit), 'Fold', str(fold_idx))))
+model_dir = sys.argv[4]
 
 batch_size = 4*n_gpu
 num_epochs = 50
@@ -141,10 +141,7 @@ if n_gpu > 1:
     model = torch.nn.DataParallel(model)
     print("::Multi-GPU Training on %d devices::" % n_gpu)
 
-print(model)
-create_dir('models')
-create_dir(model_dir)
-print(model_dir)
+model.load_state_dict(torch.load(model_dir))
 
 trainer = Trainer(model,
                 datasets,
@@ -158,18 +155,13 @@ trainer = Trainer(model,
                 gamma = 0.90,
                 n_gpu=n_gpu)
 
-result, best_test = trainer.train()
+best_test = trainer.predict()
 
-print('::Best Epoch %d::' % best_test[0])
-print('::Best Test F1 %f::' % best_test[2]['f1'])
+print('::Best Test F1 %f::' % best_test['f1'])
 print('::Best Test Classification Report::')
-print(best_test[2]['report'])
+print(best_test['report'])
 
-res_path = os.path.join(model_dir, 'result_list.json')
-best_path = os.path.join(model_dir, 'best_results.json')
-res_file = open(res_path, 'w+')
+best_path = model_dir + '_results.json'
 best_file = open(best_path, 'w+')
-res_file.write(json.dumps(result))
 best_file.write(json.dumps(best_test))
-res_file.close()
 best_file.close()
