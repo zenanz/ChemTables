@@ -10,14 +10,12 @@ pip install -r requirements.txt
 
 To train the model, run the following command, the argument model can be selected from _resnet_ or _tabnet_. The maximum row and columns are not limited as long as the input size could fit in your GPU memory.
 
-```bash
-python train.py [model] [max_rows] [max_columns]
-```
+Mode **full** stands for standard 5 fold dataset split in which the first 3 folds are for training while 4th and 5th fold are for validation and test respectively/
 
-Trained TabNet and TBResNet model state dicts on the ChemTables dataset can be downloaded from [here](https://chemu.eng.unimelb.edu.au/download/table-bert/).
+Mode **no_dev** stands for the baseline setup for ChEMU shared task, this mode uses first 4 folds as training set and the last 1 for evaluation.
 
-To make inference with the trained model, run the following script
+Mode **inference** stands for prediction mode. Please make sure you have [_ChemTables_] dataset in **data** folder and data for inference in a new folder named **test_data**. Trained TabNet and TBResNet model state dicts on the ChemTables dataset can be downloaded from [here](https://chemu.eng.unimelb.edu.au/download/table-bert/).
 
 ```bash
-python predict.py [model] [max_rows] [max_columns] [path_to_model_state_dict]
+python train.py [model] [max_rows] [max_columns] --mode [mode name] --weight_path [weight path]
 ```

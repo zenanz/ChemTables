@@ -4,6 +4,7 @@ import random
 import pickle
 import torch
 import json
+import argparse
 import numpy as np
 from TBDataset import TBDataset
 from PretrainedWordVectors import PretrainedWordVectors
@@ -15,6 +16,15 @@ from TabNet import TabNet
 from Trainer import Trainer
 from TableBert import TableBert
 from Classifier import Classifier, HybridClassifier
+
+parser = argparse.ArgumentParser()
+parser.add_argument('model', type=str, help='tabnet or resnet')
+parser.add_argument('height_limit', type=int, help='max height of the input table')
+parser.add_argument('width_limit', type=int, help='max width of the input table')
+parser.add_argument('--mode', type=str, default='full', help='evaluation mode of the model full, no_dev, or inference')
+parser.add_argument('--weight_path', type=str, default="saved_state_dict", help='path to the saved state dict')
+
+args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 n_gpu = torch.cuda.device_count()
@@ -39,13 +49,15 @@ data_dir = 'data'
 w2v_dir = 'patent_w2v.txt'
 dataset_cache = os.path.join(cache_dir, 'dataset.pickle')
 pre_trained_cache = os.path.join(cache_dir, 'pre_trained_vector.pickle')
-model_type = sys.argv[1]
-height_limit = int(sys.argv[2])
-width_limit =  int(sys.argv[3])
+model_type = args.model
+height_limit = args.height_limit
+width_limit =  args.width_limit
 hidden_size = 64
-fold_idx = 3
+fold_idx = 1
+mode = args.mode
+state_dict_path = args.weight_path
 
-model_dir = os.path.join('models', "_".join((model_type, 'H_limit', str(height_limit), 'W_limit', str(width_limit), 'Fold', str(fold_idx))))
+model_dir = os.path.join('model', "_".join((model_type, 'H_limit', str(height_limit), 'W_limit', str(width_limit), 'Fold', str(fold_idx))))
 
 batch_size = 4*n_gpu
 num_epochs = 50
@@ -62,7 +74,7 @@ table_size_limit = (height_limit, width_limit)
 #     print('::Loaded Pre-trained Vectors::')
 #
 # else:
-dataset = TBDataset(data_dir)
+dataset = TBDataset(data_dir, mode=mode)
 pre_trained_vector = PretrainedWordVectors(dataset, pretrained_path=w2v_dir)
 if not os.path.exists(cache_dir):
     os.mkdir(cache_dir)
@@ -77,12 +89,21 @@ indexer = TableWordIndexer(dataset,
 num_classes = indexer._num_classes
 num_folds = len(dataset._fold_indices)
 dataset.set_indexer(indexer)
-datasets = dataset.train_test_split_curve(fold_idx)
+
+if mode == 'full':
+    datasets = dataset.train_test_split_curve(fold_idx)
+
+elif mode == 'no_dev':
+    datasets = dataset.train_test_split_no_dev()
+
+elif mode == 'inference':
+    print('inference prep')
+    datasets = dataset.prep_inference()
 
 def built_model(model_type):
     dataset.table_bert = False
     if model_type == 'qdlstm':
-        embedder = CellEmbedder(indexer)
+        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
         pixelrnn = PixelRNN(embedder._output_dim,
                             table_size_limit,
                             hidden_size = 64,
@@ -90,7 +111,7 @@ def built_model(model_type):
                             classifier=True)
         model = Classifier(embedder, pixelrnn)
     elif model_type == 'resnet':
-        embedder = CellEmbedder(indexer)
+        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
         model = TBResNet18(embedder._output_dim, dropout=dropout)
         model = Classifier(embedder, model)
     elif model_type == 'tabnet':
@@ -98,7 +119,7 @@ def built_model(model_type):
         model = TabNet(embedder._output_dim, table_size_limit)
         model = Classifier(embedder, model)
     else:
-        embedder = CellEmbedder(indexer, hidden_size=hidden_size)
+        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
         pixelrnn = PixelRNN(embedder._output_dim,
                             table_size_limit,
                             hidden_size = hidden_size,
@@ -113,6 +134,10 @@ def built_model(model_type):
                     resnet,
                 )
         model = Classifier(embedder, combined)
+
+    if mode == 'inference':
+        model.load_state_dict(torch.load(state_dict_path))
+
     return model
 
 def build_hybrid_model(model_type):
@@ -131,6 +156,43 @@ def build_hybrid_model(model_type):
 
     return model
 
+
+# def built_hybrid_model(model_type):
+#     model_type = model_type.split('_')[-1]
+#     table_bert = TableBert('bert-base-multilingual-cased')
+#     indexer.setTRMTokenizer(table_bert._tokenizer)
+#
+#     if model_type == 'qdlstm':
+#         embedder = TRMCellEmbedder(indexer, table_bert_model=table_bert)
+#         pixelrnn = PixelRNN(embedder._output_dim,
+#                             table_size_limit,
+#                             hidden_size = 64,
+#                             num_lstm_layers = 1,
+#                             classifier=False)
+#         model = HybridClassifier(embedder, model)
+#     elif model_type == 'resnet':
+#         embedder = TRMCellEmbedder(indexer, table_bert_model=table_bert)
+#         model = TBResNet18(embedder._output_dim)
+#         model = HybridClassifier(embedder, model)
+#     elif model_type == 'tabnet':
+#         embedder = TRMCellEmbedder(indexer, char_emb=False, attention_dim=-1, table_bert_model=table_bert)
+#         model = TabNet(embedder._output_dim)
+#         model = HybridClassifier(embedder, model)
+#     else:
+#         embedder = TRMCellEmbedder(indexer, table_bert_model=table_bert)
+#         pixelrnn = PixelRNN(embedder._output_dim,
+#                             table_size_limit,
+#                             hidden_size = 64,
+#                             num_lstm_layers = 1,
+#                             classifier=False)
+#         resnet   = TBResNet18(pixelrnn._output_dim)
+#         model = torch.nn.Sequential(
+#                     pixelrnn,
+#                     resnet,
+#                 )
+#         model = HybridClassifier(embedder, model)
+#     return model
+
 model = build_hybrid_model(model_type) if 'hybrid' in model_type else built_model(model_type)
 
 if device != -1:
@@ -142,23 +204,42 @@ if n_gpu > 1:
     print("::Multi-GPU Training on %d devices::" % n_gpu)
 
 print(model)
-create_dir('models')
+create_dir('model')
 create_dir(model_dir)
 print(model_dir)
 
-trainer = Trainer(model,
-                datasets,
-                batch_size,
-                num_epochs,
-                patience,
-                device,
-                serialization_dir = model_dir,
-                target_names = indexer._target_names,
-                learning_rate = 1e-3,
-                gamma = 0.90,
-                n_gpu=n_gpu)
+if mode == 'full' or mode == 'no_dev':
+    trainer = Trainer(model,
+                    datasets,
+                    batch_size,
+                    num_epochs,
+                    patience,
+                    device,
+                    serialization_dir = model_dir,
+                    target_names = indexer._target_names,
+                    learning_rate = 1e-3,
+                    gamma = 0.90,
+                    mode = mode,
+                    n_gpu=n_gpu)
+    result, best_test = trainer.train()
+else:
+    test_set = TBDataset('test_data', mode=mode)
+    test_set.set_indexer(indexer)
+    test_set = test_set.prep_inference()
 
-result, best_test = trainer.train()
+    trainer = Trainer(model,
+                    test_set,
+                    batch_size,
+                    num_epochs,
+                    patience,
+                    device,
+                    serialization_dir = model_dir,
+                    target_names = indexer._target_names,
+                    learning_rate = 1e-3,
+                    gamma = 0.90,
+                    mode = mode,
+                    n_gpu=n_gpu)
+    result, best_test = trainer.predict()
 
 print('::Best Epoch %d::' % best_test[0])
 print('::Best Test F1 %f::' % best_test[2]['f1'])

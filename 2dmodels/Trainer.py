@@ -15,6 +15,7 @@ class Trainer:
                 patience,
                 device,
                 serialization_dir,
+                mode='full',
                 num_workers=4,
                 target_names=None,
                 learning_rate=1e-3,
@@ -27,11 +28,14 @@ class Trainer:
         self._batch_size = batch_size
         self._num_epochs = num_epochs
         self._model = model
+        self._mode = mode
 
         self._data_loaders = dict()
-        mode_list = ['train', 'validation', 'test']
+        mode_list = ['train', 'validation', 'test'] if mode != 'inference' else ['test']
         for idx, mode in enumerate(mode_list):
             self._data_loaders[mode] = DataLoader(self._datasets[idx], batch_size=self._batch_size, shuffle=True, num_workers=self._num_workers)
+
+        print(self._data_loaders)
 
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=learning_rate)
         self._scheduler = torch.optim.lr_scheduler.StepLR(self._optimizer, 1, gamma=gamma)
@@ -39,6 +43,7 @@ class Trainer:
         self._criterion = torch.nn.CrossEntropyLoss()
         self._patience = patience
         self._serialization_dir = serialization_dir
+        self._weight_path = os.path.join(serialization_dir, 'saved_state_dict')
         self._target_names =  target_names
         self._ngpu = n_gpu
 
@@ -63,7 +68,6 @@ class Trainer:
             # print(raw_tables)
             inputs = tuple(t.to(self._device) for t in inputs)
             label_ids = label_ids.to(self._device)
-
             logits = self._model(inputs)
             logits, label_ids = logits.float(), label_ids.view(-1).long()
             loss = self._criterion(logits, label_ids)
@@ -115,6 +119,7 @@ class Trainer:
         best_epoch = 0
         best_val_f1 = 0
         best_test_res = None
+        validation_set_name = 'validation' if self._mode != 'no_dev' else 'test'
 
         for epoch_idx in range(1, self._num_epochs+1):
             if no_improve == self._patience:
@@ -123,18 +128,18 @@ class Trainer:
             res = dict()
             # train, validation and test epoch
             for mode, loader in self._data_loaders.items():
-                # if mode == 'train':
-                #     continue
+                if mode == 'validation' and self._mode == 'no_dev':
+                    continue
                 res[mode] = dict()
                 res[mode]['f1'], res[mode]['report'], res[mode]['confusion'], res[mode]['avg_loss'], res[mode]['output_dict'] = self.epoch(epoch_idx, loader, mode=mode)
 
-            if res['validation']['f1'] > best_val_f1 or epoch_idx == 1:
-                best_val_f1 = res['validation']['f1']
+            if res[validation_set_name]['f1'] > best_val_f1 or epoch_idx == 1:
+                best_val_f1 = res[validation_set_name]['f1']
                 best_test_res = res['test']
                 best_epoch = epoch_idx
-                self.save()
                 # torch.save(self._model, os.path.join(self._serialization_dir, 'checkpoint'))
                 no_improve = 0
+                self.save()
             else:
                 no_improve += 1
 
@@ -144,12 +149,13 @@ class Trainer:
 
     def predict(self):
 
+        loader = self._data_loaders['test']
         res = dict()
-        res['f1'], res['report'], res['confusion'], res['avg_loss'], res['output_dict'] = self.epoch(0, self._data_loaders['test'], mode='test')
+        res['f1'], res['report'], res['confusion'], res['avg_loss'], res['output_dict'] = self.epoch(0, loader, mode='test')
 
-        return res
+        return [res], (0, res['f1'], res)
+
 
 
     def save(self):
-        path = os.path.join(self._serialization_dir, 'saved_state_dict')
-        torch.save(self._model.state_dict(), path)
+        torch.save(self._model.state_dict(), self._weight_path)
