@@ -103,7 +103,7 @@ elif mode == 'inference':
 def built_model(model_type):
     dataset.table_bert = False
     if model_type == 'qdlstm':
-        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
+        embedder = CellEmbedder(indexer, char_emb=True)
         pixelrnn = PixelRNN(embedder._output_dim,
                             table_size_limit,
                             hidden_size = 64,
@@ -111,15 +111,15 @@ def built_model(model_type):
                             classifier=True)
         model = Classifier(embedder, pixelrnn)
     elif model_type == 'resnet':
-        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
+        embedder = CellEmbedder(indexer, char_emb=True)
         model = TBResNet18(embedder._output_dim, dropout=dropout)
         model = Classifier(embedder, model)
     elif model_type == 'tabnet':
-        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
+        embedder = CellEmbedder(indexer, char_emb=True)
         model = TabNet(embedder._output_dim, table_size_limit)
         model = Classifier(embedder, model)
     else:
-        embedder = CellEmbedder(indexer, char_emb=False, attention_dim=-1)
+        embedder = CellEmbedder(indexer, char_emb=True)
         pixelrnn = PixelRNN(embedder._output_dim,
                             table_size_limit,
                             hidden_size = hidden_size,
@@ -128,7 +128,6 @@ def built_model(model_type):
         resnet   = TBResNet18(pixelrnn._output_dim,
                             crossconv=table_size_limit,
                             dropout=dropout)
-        # tabnet = TabNet(pixelrnn._output_dim, table_size_limit)
         combined = torch.nn.Sequential(
                     pixelrnn,
                     resnet,
